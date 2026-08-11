@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ifood-olist-analytics"
+version = "1.0.0"
+description = "Case enxuto de Analytics Engineering com dados Olist"
+requires-python = ">=3.11"
+dependencies = [
+  "pandas>=2.2.0,<3.0",
+  "numpy>=1.26.0,<3.0",
+  "pyarrow>=16.0.0",
+  "duckdb>=1.0.0",
+  "matplotlib>=3.8.0,<4.0",
+  "seaborn>=0.13.0,<1.0",
+  "jupyter>=1.0.0,<2.0",
+  "openai>=1.0.0,<3.0",
+]
+
+[project.optional-dependencies]
+# Ferramentas de desenvolvimento ficam opcionais para não serem exigidas na
+# execução do pipeline, mas permitem rodar a suíte de contratos localmente.
+dev = ["pytest>=8.0.0,<10.0"]
+
+[tool.pytest.ini_options]
+# A descoberta é intencionalmente restrita à suíte curta de contratos.
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.setuptools.packages.find]
+where = ["src"]

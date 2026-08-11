@@ -1,0 +1,11 @@
+# Lockfile enxuto das dependências diretas para Python 3.11.
+# As dependências transitivas são resolvidas pelo pip para a plataforma alvo.
+pandas==2.3.3
+numpy==2.4.6
+pyarrow==25.0.1
+duckdb==1.5.5
+matplotlib==3.11.1
+seaborn==0.13.2
+jupyter==1.1.1
+openai==1.109.1
+pytest==9.1.1
