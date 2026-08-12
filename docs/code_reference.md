@@ -18,7 +18,7 @@ Este guia documenta a finalidade de cada arquivo executável e de seus blocos l�
 - **Datas, domínios e FKs**: faz parsing não destrutivo, verifica status conhecidos, relações referenciais, valores não negativos, score de review e ordem temporal das etapas.
 - **Outliers**: calcula Tukey extremo (`Q3 + 3×IQR`) em preço/frete. Mede prevalência para monitoramento; não elimina nem winsoriza valores.
 - **Reconciliação**: agrega pagamentos e itens por `order_id`, aplica `outer join`, separa pedidos presentes em um único lado das diferenças monetárias comparáveis e registra ambos no warning.
-- **Lista de checks**: 31 regras críticas bloqueiam a silver; warnings tornam caudas e anomalias toleradas observáveis sem apagar dados.
+- **Lista de checks**: 29 regras críticas bloqueiam a silver; warnings tornam caudas e anomalias toleradas observáveis sem apagar dados.
 
 ## `src/ifood_analytics/pipeline.py`
 
@@ -47,7 +47,6 @@ O manifesto em `data/reports/pipeline_manifest.json` registra volumes, DQ, prese
 
 ## `src/ifood_analytics/analysis.py`
 
-- **`bootstrap_mean_difference()`**: rotina genérica de reamostragem independente de duas séries, preservada para usos simples.
 - **`bootstrap_clustered_mean_difference()`**: recebe uma tabela, cluster, grupo e resultado; agrega internamente por cluster e reamostra clientes inteiros com seed fixa. É usada no EDA para não tratar múltiplos pedidos do mesmo `customer_unique_id` como independentes.
 
 ## `src/ifood_analytics/ai_summary.py`

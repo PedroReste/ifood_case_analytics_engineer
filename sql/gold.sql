@@ -99,7 +99,7 @@ GROUP BY 1 ORDER BY revenue DESC;
 
 -- Grão: cliente único. CLV observado (receita histórica), não valor futuro previsto.
 CREATE OR REPLACE TABLE mart_customer_value AS
-SELECT customer_unique_id, ANY_VALUE(customer_state) AS customer_state,
+SELECT customer_unique_id, MODE(customer_state) AS customer_state,
        COUNT(*) AS orders, SUM(item_revenue) AS observed_clv,
        MIN(order_purchase_timestamp) AS first_order_at,
        MAX(order_purchase_timestamp) AS last_order_at,
@@ -111,7 +111,7 @@ GROUP BY 1;
 -- Grão: seller. Permite medir concentração e qualidade operacional; as médias
 -- de review/atraso são ponderadas por item vendido pelo seller.
 CREATE OR REPLACE TABLE mart_seller_performance AS
-SELECT seller_id, ANY_VALUE(seller_state) AS seller_state,
+SELECT seller_id, MODE(seller_state) AS seller_state,
        COUNT(DISTINCT order_id) AS orders, SUM(price) AS revenue,
        AVG(review_score) AS avg_review_score, AVG(CAST(is_late AS INTEGER)) AS late_rate
 FROM fact_order_items

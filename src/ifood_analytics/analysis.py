@@ -1,27 +1,7 @@
 """Métricas usadas no EDA e na recomendação executiva."""
 
 from __future__ import annotations
-
 import pandas as pd
-
-
-def bootstrap_mean_difference(
-    values_a: pd.Series, values_b: pd.Series, *, iterations: int = 2_000, seed: int = 42
-) -> tuple[float, float, float]:
-    """Estima diferença de médias e IC95% por bootstrap reprodutível."""
-    # NumPy é importado localmente porque este módulo possui uma única rotina
-    # estatística e o carregamento pode ser evitado em fluxos que não usam EDA.
-    import numpy as np
-
-    # Higieniza entradas e falha cedo: bootstrap de amostra vazia não é definido.
-    rng = np.random.default_rng(seed)
-    a, b = values_a.dropna().to_numpy(), values_b.dropna().to_numpy()
-    if len(a) == 0 or len(b) == 0:
-        raise ValueError("As duas amostras precisam conter ao menos um valor não nulo.")
-    # Cada iteração reamostra os dois grupos de forma independente e calcula A-B.
-    diffs = [rng.choice(a, len(a), replace=True).mean() - rng.choice(b, len(b), replace=True).mean() for _ in range(iterations)]
-    return float(a.mean() - b.mean()), float(np.quantile(diffs, 0.025)), float(np.quantile(diffs, 0.975))
-
 
 def bootstrap_clustered_mean_difference(
     data: pd.DataFrame,
@@ -35,7 +15,6 @@ def bootstrap_clustered_mean_difference(
     seed: int = 42,
 ) -> tuple[float, float, float]:
     """Estima A-B por bootstrap que reamostra clusters inteiros.
-
     Cada cliente sorteado entra com todos os seus pedidos elegíveis. Assim, a
     incerteza não trata pedidos do mesmo ``customer_unique_id`` como observações
     independentes. ``group_a`` e ``group_b`` definem a ordem da diferença.
@@ -97,4 +76,9 @@ def bootstrap_clustered_mean_difference(
     diffs = diffs[~np.isnan(diffs)]
     if len(diffs) == 0:
         raise ValueError("Nenhuma reamostra continha os dois grupos.")
+    # Iterações descartadas reduzem a confiabilidade do IC; avisa quando excede 5%.
+    discarded = iterations - len(diffs)
+    if discarded > iterations * 0.05:
+        import warnings
+        warnings.warn(f"Bootstrap: {discarded}/{iterations} iterações descartadas por grupo ausente na reamostra.")
     return float(observed), float(np.quantile(diffs, 0.025)), float(np.quantile(diffs, 0.975))

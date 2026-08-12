@@ -1,24 +1,32 @@
 """Suite automatizada e reutilizável de qualidade dos dados bronze."""
 
 from __future__ import annotations
-
 import json
 from pathlib import Path
 from typing import Any
-
 import pandas as pd
-
 
 # Contratos explícitos evitam que uma mudança de schema chegue à silver como um
 # KeyError pouco informativo. Cada tabela deve chegar com o conjunto exato abaixo.
 EXPECTED_COLUMNS: dict[str, set[str]] = {
-    "olist_customers_dataset.csv": {"customer_id", "customer_unique_id", "customer_zip_code_prefix", "customer_city", "customer_state"},
-    "olist_geolocation_dataset.csv": {"geolocation_zip_code_prefix", "geolocation_lat", "geolocation_lng", "geolocation_city", "geolocation_state"},
-    "olist_order_items_dataset.csv": {"order_id", "order_item_id", "product_id", "seller_id", "shipping_limit_date", "price", "freight_value"},
-    "olist_order_payments_dataset.csv": {"order_id", "payment_sequential", "payment_type", "payment_installments", "payment_value"},
-    "olist_order_reviews_dataset.csv": {"review_id", "order_id", "review_score", "review_comment_title", "review_comment_message", "review_creation_date", "review_answer_timestamp"},
-    "olist_orders_dataset.csv": {"order_id", "customer_id", "order_status", "order_purchase_timestamp", "order_approved_at", "order_delivered_carrier_date", "order_delivered_customer_date", "order_estimated_delivery_date"},
-    "olist_products_dataset.csv": {"product_id", "product_category_name", "product_name_lenght", "product_description_lenght", "product_photos_qty", "product_weight_g", "product_length_cm", "product_height_cm", "product_width_cm"},
+    "olist_customers_dataset.csv": {"customer_id", "customer_unique_id", "customer_zip_code_prefix", 
+                                    "customer_city", "customer_state"},
+    "olist_geolocation_dataset.csv": {"geolocation_zip_code_prefix", "geolocation_lat", "geolocation_lng", 
+                                      "geolocation_city", "geolocation_state"},
+    "olist_order_items_dataset.csv": {"order_id", "order_item_id", "product_id", 
+                                      "seller_id", "shipping_limit_date", "price", 
+                                      "freight_value"},
+    "olist_order_payments_dataset.csv": {"order_id", "payment_sequential", "payment_type", 
+                                         "payment_installments", "payment_value"},
+    "olist_order_reviews_dataset.csv": {"review_id", "order_id", "review_score", 
+                                        "review_comment_title", "review_comment_message", "review_creation_date", 
+                                        "review_answer_timestamp"},
+    "olist_orders_dataset.csv": {"order_id", "customer_id", "order_status", 
+                                 "order_purchase_timestamp", "order_approved_at", "order_delivered_carrier_date", 
+                                 "order_delivered_customer_date", "order_estimated_delivery_date"},
+    "olist_products_dataset.csv": {"product_id", "product_category_name", "product_name_lenght", 
+                                   "product_description_lenght", "product_photos_qty", "product_weight_g", 
+                                   "product_length_cm", "product_height_cm", "product_width_cm"},
     "olist_sellers_dataset.csv": {"seller_id", "seller_zip_code_prefix", "seller_city", "seller_state"},
     "product_category_name_translation.csv": {"product_category_name", "product_category_name_english"},
 }
@@ -39,18 +47,15 @@ ORDER_DATE_COLUMNS = [
     "order_delivered_customer_date", "order_estimated_delivery_date",
 ]
 
-
 def _result(name: str, passed: bool, observed: Any, expectation: str, severity: str = "critical") -> dict[str, Any]:
     """Padroniza o contrato pass/fail usado no relatório JSON."""
     return {"check": name, "passed": bool(passed), "observed": observed, "expectation": expectation, "severity": severity}
-
 
 def _write_report(checks: list[dict[str, Any]], output: Path | None) -> None:
     """Persiste o relatório mesmo quando o schema impede checks posteriores."""
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(checks, indent=2, ensure_ascii=False), encoding="utf-8")
-
 
 def run_quality_checks(bronze: Path, output: Path | None = None) -> list[dict[str, Any]]:
     """Executa checks de completude, unicidade, domínio, FK, outlier e datas."""
@@ -149,7 +154,10 @@ def run_quality_checks(bronze: Path, output: Path | None = None) -> list[dict[st
         _result("categoria ausente monitorada", products.product_category_name.isna().mean() < 0.03, round(float(products.product_category_name.isna().mean()), 4), "menos de 3%; preencher como unknown", "warning"),
         _result("outliers extremos de preço/frete monitorados", extreme_mask.mean() < 0.05, {**extreme_counts, "row_rate": round(float(extreme_mask.mean()), 4)}, "menos de 5% das linhas acima de Q3 + 3*IQR; preservar e monitorar", "warning"),
         _result("coordenadas em faixa geográfica plausível", geolocation.geolocation_lat.between(-35, 6).all() and geolocation.geolocation_lng.between(-75, -30).all(), int((~geolocation.geolocation_lat.between(-35, 6) | ~geolocation.geolocation_lng.between(-75, -30)).sum()), "0 coordenadas fora da faixa ampla do Brasil", "warning"),
-        _result("pagamentos reconciliam itens + frete", mismatch_rate < 0.02 and reconciliation_observed["only_payments"] == 0 and reconciliation_observed["only_items"] == 0, reconciliation_observed, "0 pedidos em apenas um lado e menos de 2% de divergência acima de R$ 0,01", "warning"),
+        # Divergências monetárias esperadas: vouchers reduzem o valor pago; parcelamentos com
+        # juros elevam payment_value acima de item+frete. Pedidos only_items são status pré-pagamento.
+        _result("pagamentos reconciliam itens + frete", mismatch_rate < 0.02 and reconciliation_observed["only_items"] == 0, reconciliation_observed, "menos de 2% de divergência nos pedidos comparáveis; pedidos only_items são pré-pagamento esperado", "warning"),
+        _result("reviews múltiplos por pedido monitorados", float(reviews.groupby("order_id")["review_id"].nunique().gt(1).mean()) < 0.01, round(float(reviews.groupby("order_id")["review_id"].nunique().gt(1).mean()), 4), "menos de 1% dos pedidos com mais de um review; avg_review_score será média dos reviews", "warning"),
     ]
     # O mesmo objeto retorna ao pipeline e, opcionalmente, vira relatório JSON.
     _write_report(checks, output)

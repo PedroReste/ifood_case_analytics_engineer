@@ -1,13 +1,9 @@
 """Configurações e contrato dos nove arquivos de origem do case."""
-
 from __future__ import annotations
-
 from dataclasses import dataclass
 from pathlib import Path
 
-
 # Contrato de entrada: a carga só começa quando os nove arquivos estão presentes.
-# A tupla também define uma ordem determinística de processamento e de manifesto.
 SOURCE_FILES: tuple[str, ...] = (
     "olist_customers_dataset.csv",
     "olist_geolocation_dataset.csv",
@@ -20,11 +16,8 @@ SOURCE_FILES: tuple[str, ...] = (
     "product_category_name_translation.csv",
 )
 
-
 @dataclass(frozen=True)
 class PipelinePaths:
-    """Centraliza caminhos para tornar a execução independente do diretório atual."""
-
     source: Path
     data: Path
 

@@ -102,12 +102,16 @@ def summarize(data: Path) -> str:
 
     # O prompt limita tamanho e proíbe inferência causal; OPENAI_MODEL permite
     # trocar o modelo sem alterar ou versionar novamente o código.
-    response = OpenAI().responses.create(
-        model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
-        instructions="Você é um analista executivo. Resuma em português, em até 120 palavras, sem inventar causalidade.",
-        input=json.dumps(metrics, ensure_ascii=False),
-    )
-    return response.output_text
+    # Falhas de API (quota, timeout, modelo indisponível) acionam o mesmo fallback local.
+    try:
+        response = OpenAI().responses.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            instructions="Você é um analista executivo. Resuma em português, em até 120 palavras, sem inventar causalidade.",
+            input=json.dumps(metrics, ensure_ascii=False),
+        )
+        return response.output_text
+    except Exception:
+        return local_summary(metrics)
 
 
 def main() -> None:

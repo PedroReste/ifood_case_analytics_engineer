@@ -1,21 +1,19 @@
-"""Pipeline medalhão local: CSV (origem) -> Parquet bronze/silver/gold.
-
-Bronze preserva o conteúdo recebido. Silver aplica regras justificadas pelo
-notebook de qualidade. Gold cria tabelas analíticas em granularidades explícitas.
+"""
+Pipeline medalhão local: CSV (origem) -> Parquet bronze/silver/gold.
+Bronze preserva o conteúdo recebido. 
+Silver aplica regras justificadas pelo notebook de qualidade. 
+Gold cria tabelas analíticas em granularidades explícitas.
 """
 
 from __future__ import annotations
-
 import argparse
 import json
 import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
-
 import duckdb
 import pandas as pd
-
 from .config import PipelinePaths, SOURCE_FILES
 from .quality import run_quality_checks
 
@@ -37,12 +35,10 @@ GOLD_TABLES: tuple[str, ...] = (
     "mart_category_performance", "mart_customer_value", "mart_seller_performance",
 )
 
-
 def _first_mode_or_na(values: pd.Series) -> object:
     """Retorna uma moda determinística ou nulo quando o grupo só tem nulos."""
     modes = values.dropna().mode()
     return modes.iat[0] if not modes.empty else pd.NA
-
 
 def _contract_result(
     name: str, passed: bool, observed: Any, expectation: str, severity: str = "critical"
@@ -56,11 +52,9 @@ def _contract_result(
         "severity": severity,
     }
 
-
 def table_name(filename: str) -> str:
     """Converte nomes dos CSVs em nomes curtos e estáveis de tabela."""
     return filename.removeprefix("olist_").removesuffix("_dataset.csv").removesuffix(".csv")
-
 
 def ingest_bronze(paths: PipelinePaths) -> dict[str, int]:
     """Valida o pacote de entrada e copia CSVs sem alteração para bronze."""
@@ -78,10 +72,8 @@ def ingest_bronze(paths: PipelinePaths) -> dict[str, int]:
         counts[table_name(filename)] = len(pd.read_csv(source, usecols=[0]))
     return counts
 
-
 def build_silver(paths: PipelinePaths) -> dict[str, int]:
     """Tipa datas e normaliza campos sem remover registros da origem.
-
     Nulos semânticos são preservados. A categoria ausente recebe 'unknown' para
     evitar perda de receita em agregações, acompanhada por uma flag de nulidade.
     Geolocalização detalhada é preservada; uma tabela adicional por CEP usa
@@ -117,10 +109,8 @@ def build_silver(paths: PipelinePaths) -> dict[str, int]:
         counts[name] = len(frame)
     return counts
 
-
 def _publish_gold(staging: Path, target: Path) -> None:
     """Troca a camada gold somente após todos os Parquets estarem prontos.
-
     A publicação usa diretórios irmãos para que uma falha durante a geração
     preserve a gold anterior. Em caso de erro na troca, o backup é restaurado.
     """
@@ -141,7 +131,6 @@ def _publish_gold(staging: Path, target: Path) -> None:
             shutil.rmtree(staging, ignore_errors=True)
         if backup.exists() and target.exists():
             shutil.rmtree(backup, ignore_errors=True)
-
 
 def build_gold(paths: PipelinePaths) -> dict[str, int]:
     """Materializa fatos e marts de negócio com SQL DuckDB e publica por staging."""
@@ -176,7 +165,6 @@ def build_gold(paths: PipelinePaths) -> dict[str, int]:
         raise ValueError("Falha em contrato gold durante a publicação por staging.")
     _publish_gold(staging, paths.gold)
     return counts
-
 
 def validate_gold_contracts(
     paths: PipelinePaths, gold_path: Path | None = None
@@ -230,7 +218,6 @@ def validate_gold_contracts(
         ),
     ]
 
-
 def run(source: Path, data: Path) -> dict[str, object]:
     """Executa todas as camadas e falha caso uma regra crítica de DQ não passe."""
     # Orquestração: caminhos -> bronze -> gate de DQ -> silver -> gold -> manifesto.
@@ -262,7 +249,6 @@ def run(source: Path, data: Path) -> dict[str, object]:
     )
     return manifest
 
-
 def main() -> None:
     """Interface de linha de comando do pipeline."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -271,7 +257,6 @@ def main() -> None:
     args = parser.parse_args()
     result = run(args.source, args.data)
     print(json.dumps({key: value if key != "quality_checks" else "ver relatório" for key, value in result.items()}, indent=2))
-
 
 if __name__ == "__main__":
     main()
