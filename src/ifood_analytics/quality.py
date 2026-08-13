@@ -1,4 +1,4 @@
-"""Suite automatizada e reutilizável de qualidade dos dados bronze."""
+"""Suite de qualidade de dados: valida schema, chaves, FKs, domínios, datas, outliers e reconciliação nos 9 CSVs bronze."""
 
 from __future__ import annotations
 import json
@@ -57,20 +57,25 @@ def _write_report(checks: list[dict[str, Any]], output: Path | None) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(checks, indent=2, ensure_ascii=False), encoding="utf-8")
 
+def _fk_check(name: str, child: pd.Series, parent: pd.Series) -> dict[str, Any]:
+    """Verifica referência: todos os valores do filho devem existir no pai."""
+    mask = child.isin(parent)
+    return _result(name, mask.all(), int((~mask).sum()), "0 órfãos")
+
 def run_quality_checks(bronze: Path, output: Path | None = None) -> list[dict[str, Any]]:
     """Executa checks de completude, unicidade, domínio, FK, outlier e datas."""
     # Leitura bruta centralizada mantém as regras independentes da silver.
     frames = {name: pd.read_csv(bronze / name, low_memory=False) for name in EXPECTED_COLUMNS}
-    schema_checks = [
-        _result(
+    schema_checks = []
+    for name, expected in EXPECTED_COLUMNS.items():
+        frame = frames[name]
+        actual_cols = set(frame.columns)
+        schema_checks.append(_result(
             f"schema {name}",
-            set(frame.columns) == expected,
-            {"missing": sorted(expected - set(frame.columns)), "unexpected": sorted(set(frame.columns) - expected)},
+            actual_cols == expected,
+            {"missing": sorted(expected - actual_cols), "unexpected": sorted(actual_cols - expected)},
             "colunas exatamente iguais ao contrato",
-        )
-        for name, expected in EXPECTED_COLUMNS.items()
-        for frame in [frames[name]]
-    ]
+        ))
     if any(not check["passed"] for check in schema_checks):
         _write_report(schema_checks, output)
         return schema_checks
@@ -125,27 +130,30 @@ def run_quality_checks(bronze: Path, output: Path | None = None) -> list[dict[st
         "value_mismatches": int(comparable.difference.gt(0.01).sum()),
         "mismatch_rate_comparable": round(mismatch_rate, 4),
     }
+    multi_review_rate = round(float(reviews.groupby("order_id")["review_id"].nunique().gt(1).mean()), 4)
     # Contrato final: críticos protegem chaves/semântica; warnings tornam caudas
     # observáveis sem descartar registros comercialmente plausíveis.
-    key_checks = [
-        _result(
+    key_checks = []
+    for name, (table, columns) in KEY_CONTRACTS.items():
+        df = frames[table]
+        has_duplicates = df.duplicated(columns).any()
+        has_null_keys = df[columns].isna().any(axis=1).any()
+        key_checks.append(_result(
             f"{name} único e preenchido",
-            not frames[table].duplicated(columns).any() and not frames[table][columns].isna().any(axis=1).any(),
-            {"duplicates": int(frames[table].duplicated(columns).sum()), "null_keys": int(frames[table][columns].isna().any(axis=1).sum())},
+            not has_duplicates and not has_null_keys,
+            {"duplicates": int(df.duplicated(columns).sum()), "null_keys": int(df[columns].isna().any(axis=1).sum())},
             "0 duplicatas e 0 chaves nulas",
-        )
-        for name, (table, columns) in KEY_CONTRACTS.items()
-    ]
+        ))
     checks = schema_checks + key_checks + [
         _result("orders.customer_id preenchido", orders.customer_id.notna().all(), int(orders.customer_id.isna().sum()), "0 nulos"),
         _result("datas de pedidos parseáveis", not any(parse_failures.values()), parse_failures, "0 falhas de parsing em datas não nulas"),
         _result("status dentro do domínio", set(orders.order_status) <= valid_status, sorted(set(orders.order_status) - valid_status), "somente status conhecidos"),
-        _result("FK orders -> customers", orders.customer_id.isin(customers.customer_id).all(), int((~orders.customer_id.isin(customers.customer_id)).sum()), "0 órfãos"),
-        _result("FK items -> orders", items.order_id.isin(orders.order_id).all(), int((~items.order_id.isin(orders.order_id)).sum()), "0 órfãos"),
-        _result("FK items -> products", items.product_id.isin(products.product_id).all(), int((~items.product_id.isin(products.product_id)).sum()), "0 órfãos"),
-        _result("FK items -> sellers", items.seller_id.isin(sellers.seller_id).all(), int((~items.seller_id.isin(sellers.seller_id)).sum()), "0 órfãos"),
-        _result("FK payments -> orders", payments.order_id.isin(orders.order_id).all(), int((~payments.order_id.isin(orders.order_id)).sum()), "0 órfãos"),
-        _result("FK reviews -> orders", reviews.order_id.isin(orders.order_id).all(), int((~reviews.order_id.isin(orders.order_id)).sum()), "0 órfãos"),
+        _fk_check("FK orders -> customers", orders.customer_id, customers.customer_id),
+        _fk_check("FK items -> orders", items.order_id, orders.order_id),
+        _fk_check("FK items -> products", items.product_id, products.product_id),
+        _fk_check("FK items -> sellers", items.seller_id, sellers.seller_id),
+        _fk_check("FK payments -> orders", payments.order_id, orders.order_id),
+        _fk_check("FK reviews -> orders", reviews.order_id, orders.order_id),
         _result("preço e frete não negativos", ((items.price >= 0) & (items.freight_value >= 0)).all(), int(((items.price < 0) | (items.freight_value < 0)).sum()), "0 valores negativos"),
         _result("review_score entre 1 e 5", reviews.review_score.between(1, 5).all(), int((~reviews.review_score.between(1, 5)).sum()), "0 fora do intervalo"),
         _result("aprovação após compra", (approved_with_date.order_approved_at >= approved_with_date.order_purchase_timestamp).all(), int((approved_with_date.order_approved_at < approved_with_date.order_purchase_timestamp).sum()), "0 inconsistências entre datas disponíveis"),
@@ -157,7 +165,7 @@ def run_quality_checks(bronze: Path, output: Path | None = None) -> list[dict[st
         # Divergências monetárias esperadas: vouchers reduzem o valor pago; parcelamentos com
         # juros elevam payment_value acima de item+frete. Pedidos only_items são status pré-pagamento.
         _result("pagamentos reconciliam itens + frete", mismatch_rate < 0.02 and reconciliation_observed["only_items"] == 0, reconciliation_observed, "menos de 2% de divergência nos pedidos comparáveis; pedidos only_items são pré-pagamento esperado", "warning"),
-        _result("reviews múltiplos por pedido monitorados", float(reviews.groupby("order_id")["review_id"].nunique().gt(1).mean()) < 0.01, round(float(reviews.groupby("order_id")["review_id"].nunique().gt(1).mean()), 4), "menos de 1% dos pedidos com mais de um review; avg_review_score será média dos reviews", "warning"),
+        _result("reviews múltiplos por pedido monitorados", multi_review_rate < 0.01, multi_review_rate, "menos de 1% dos pedidos com mais de um review; avg_review_score será média dos reviews", "warning"),
     ]
     # O mesmo objeto retorna ao pipeline e, opcionalmente, vira relatório JSON.
     _write_report(checks, output)

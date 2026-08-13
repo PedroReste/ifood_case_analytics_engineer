@@ -14,9 +14,8 @@ Este repositório apresenta os seguintes aspectos para responder essa pergunta:
 - Pasta [docs](docs) existem os markdowns gerados durante o processo de construção de notebooks e apresentando mais detalhes de cada etapa que não estão neste README.md.
 
 ## Premissas assumidas para o Case
-- Sou um Analista de BI recém-contratado, com pouco familiaridade com o base de dados.
+- Sou um Analista de BI recém-contratado, com pouco familiaridade com a base de dados e regras de negócios da companhia.
 - Preciso responder uma pergunta estratégica para o CEO.
-- Para responder essa pergunta, tenho apenas 03 dias para conhecer as bases disponíveis e sua qualidade, estrutura uma visão técnica, analisar e gerar os insights para o CEO.
 - Para cumprir esse objetivo, apliquei o uso de IA para gerar as análises iniciais da estrutura, dos dados, geração dos primeiros códigos para acelerar a entrega no curto espaço de tempo.
 - Após isso, atuei como um auditor dos dados gerados pela IA para confirmar que não houve erros e alucinações, para me aprofundar nos notebooks de qualidade de dados e EDA.
 - Finalizando todo esse desenvolvimento para gerar um MVP para o CEO da sua pergunta. 

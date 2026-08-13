@@ -1,4 +1,4 @@
-"""Métricas usadas no EDA e na recomendação executiva."""
+"""Estatística usada no EDA: bootstrap agrupado por cliente para estimar diferenças de média com IC95%."""
 
 from __future__ import annotations
 import pandas as pd
@@ -56,24 +56,16 @@ def bootstrap_clustered_mean_difference(
 
     observed = sums_a.sum() / counts_a.sum() - sums_b.sum() / counts_b.sum()
     rng = np.random.default_rng(seed)
-    diffs = np.empty(iterations, dtype=float)
-    batch_size = 25
-    for start in range(0, iterations, batch_size):
-        batch = min(batch_size, iterations - start)
-        draws = rng.integers(0, len(clusters), size=(batch, len(clusters)))
-        sampled_counts_a = counts_a[draws].sum(axis=1)
-        sampled_counts_b = counts_b[draws].sum(axis=1)
-        # Os grupos existem na amostra original; ainda assim, protege contra a
-        # rara reamostra que não contenha um deles.
-        valid = (sampled_counts_a > 0) & (sampled_counts_b > 0)
-        batch_diffs = np.full(batch, np.nan)
-        batch_diffs[valid] = (
-            sums_a[draws][valid].sum(axis=1) / sampled_counts_a[valid]
-            - sums_b[draws][valid].sum(axis=1) / sampled_counts_b[valid]
-        )
-        diffs[start : start + batch] = batch_diffs
 
-    diffs = diffs[~np.isnan(diffs)]
+    # A cada iteração: sorteia clientes com reposição e recalcula a diferença de médias.
+    raw_diffs = []
+    for _ in range(iterations):
+        idx = rng.integers(0, len(clusters), size=len(clusters))
+        ca, cb = counts_a[idx].sum(), counts_b[idx].sum()
+        if ca > 0 and cb > 0:
+            raw_diffs.append(sums_a[idx].sum() / ca - sums_b[idx].sum() / cb)
+
+    diffs = np.array(raw_diffs)
     if len(diffs) == 0:
         raise ValueError("Nenhuma reamostra continha os dois grupos.")
     # Iterações descartadas reduzem a confiabilidade do IC; avisa quando excede 5%.

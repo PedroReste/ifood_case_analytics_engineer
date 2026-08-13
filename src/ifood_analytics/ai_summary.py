@@ -1,7 +1,6 @@
-"""Resumo executivo por LLM com fallback determinístico e sem expor dados pessoais.
+"""Gera resumo executivo da gold via LLM (OpenAI) ou fallback local, enviando apenas métricas agregadas — sem IDs ou dados pessoais.
 
-O script envia somente métricas agregadas. Se OPENAI_API_KEY não estiver definida,
-gera um resumo local para manter o case totalmente reprodutível.
+Se OPENAI_API_KEY não estiver definida, produz um resumo determinístico local.
 """
 
 from __future__ import annotations
@@ -42,11 +41,11 @@ def _load_gold_marts(data: Path) -> dict[str, pd.DataFrame]:
             f"({', '.join(empty_marts)}). Execute o pipeline com uma fonte contendo pedidos elegíveis."
         )
 
-    invalid_schema = {
-        name: sorted(columns - set(marts[name].columns))
-        for name, columns in GOLD_MARTS.items()
-        if columns - set(marts[name].columns)
-    }
+    invalid_schema = {}
+    for name, columns in GOLD_MARTS.items():
+        missing_cols = sorted(columns - set(marts[name].columns))
+        if missing_cols:
+            invalid_schema[name] = missing_cols
     if invalid_schema:
         raise ValueError(f"Contrato gold inválido: colunas ausentes em {invalid_schema}.")
     return marts
@@ -61,14 +60,15 @@ def collect_metrics(data: Path) -> dict[str, object]:
     categories = marts["mart_category_performance.parquet"]
     sellers = marts["mart_seller_performance.parquet"]
     seller_revenue = float(sellers.revenue.sum())
+    top_5_categories = categories.nlargest(5, "revenue")[["category", "revenue", "avg_review_score"]]
+    top_10pct_count = max(1, math.ceil(len(sellers) * 0.10))
+    top_10pct_revenue = sellers.nlargest(top_10pct_count, "revenue").revenue.sum()
+    seller_top10_share = round(float(top_10pct_revenue / seller_revenue), 4) if seller_revenue else 0.0
     return {
         "period": [str(monthly.order_month.min()), str(monthly.order_month.max())],
         "revenue": round(float(monthly.revenue.sum()), 2),
-        "top_categories": categories.nlargest(5, "revenue")[["category", "revenue", "avg_review_score"]].to_dict("records"),
-        "seller_top10_share": round(
-            float(sellers.nlargest(max(1, math.ceil(len(sellers) * 0.10)), "revenue").revenue.sum() / seller_revenue),
-            4,
-        ) if seller_revenue else 0.0,
+        "top_categories": top_5_categories.to_dict("records"),
+        "seller_top10_share": seller_top10_share,
     }
 
 
@@ -82,7 +82,9 @@ def local_summary(metrics: dict[str, object]) -> str:
             "Revise o período e os filtros de elegibilidade antes de tomar decisões."
         )
     top = categories[0]
-    brl = lambda value: f"{value:,.2f}".translate(str.maketrans({",": ".", ".": ","}))
+    def brl(value: float) -> str:
+        # Formata número como moeda brasileira: 1.234,56
+        return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     seller_share = f"{float(metrics.get('seller_top10_share', 0)):.1%}".replace(".", ",")
     return (
         f"A base soma R$ {brl(float(metrics.get('revenue', 0)))} em GMV de itens. "

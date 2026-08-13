@@ -1,8 +1,7 @@
 """
-Pipeline medalhão local: CSV (origem) -> Parquet bronze/silver/gold.
-Bronze preserva o conteúdo recebido. 
-Silver aplica regras justificadas pelo notebook de qualidade. 
-Gold cria tabelas analíticas em granularidades explícitas.
+Pipeline medalão: lê 9 CSVs → grava bronze (cópia fiel) → valida qualidade
+→ grava silver (tipagem e normalização) → grava gold (agregações SQL via DuckDB).
+Cada camada só é publicada se os contratos da anterior passarem.
 """
 
 from __future__ import annotations
@@ -39,6 +38,13 @@ def _first_mode_or_na(values: pd.Series) -> object:
     """Retorna uma moda determinística ou nulo quando o grupo só tem nulos."""
     modes = values.dropna().mode()
     return modes.iat[0] if not modes.empty else pd.NA
+
+def _any_critical_failed(checks: list[dict]) -> bool:
+    """Retorna True se algum check crítico não passou."""
+    for check in checks:
+        if check["severity"] == "critical" and not check["passed"]:
+            return True
+    return False
 
 def _contract_result(
     name: str, passed: bool, observed: Any, expectation: str, severity: str = "critical"
@@ -160,7 +166,7 @@ def build_gold(paths: PipelinePaths) -> dict[str, int]:
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    if any(item["severity"] == "critical" and not item["passed"] for item in staged_contracts):
+    if _any_critical_failed(staged_contracts):
         shutil.rmtree(staging, ignore_errors=True)
         raise ValueError("Falha em contrato gold durante a publicação por staging.")
     _publish_gold(staging, paths.gold)
@@ -225,22 +231,21 @@ def run(source: Path, data: Path) -> dict[str, object]:
     paths.create()
     manifest: dict[str, object] = {"bronze": ingest_bronze(paths)}
     quality = run_quality_checks(paths.bronze, paths.reports / "data_quality.json")
-    if any(item["severity"] == "critical" and not item["passed"] for item in quality):
+    if _any_critical_failed(quality):
         raise ValueError("Falha em regra crítica. Consulte data/reports/data_quality.json")
     manifest["silver"] = build_silver(paths)
     # Contrato de preservação: toda entidade de origem deve manter o mesmo
     # número de linhas na silver. Tabelas derivadas, como geolocation_by_zip,
     # são adicionais e não substituem o detalhe.
-    row_differences = {
-        name: manifest["silver"][name] - manifest["bronze"][name]
-        for name in manifest["bronze"]
-    }
+    row_differences = {}
+    for name in manifest["bronze"]:
+        row_differences[name] = manifest["silver"][name] - manifest["bronze"][name]
     if any(row_differences.values()):
         raise ValueError(f"Silver não preservou linhas da bronze: {row_differences}")
     manifest["row_preservation"] = {"passed": True, "differences": row_differences}
     manifest["gold"] = build_gold(paths)
     gold_contracts = validate_gold_contracts(paths)
-    if any(item["severity"] == "critical" and not item["passed"] for item in gold_contracts):
+    if _any_critical_failed(gold_contracts):
         raise ValueError("Falha em contrato gold. Consulte a execução e os dados da camada gold.")
     manifest["gold_contracts"] = gold_contracts
     manifest["quality_checks"] = quality
@@ -256,7 +261,10 @@ def main() -> None:
     parser.add_argument("--data", type=Path, default=Path("data"), help="Diretório de saída")
     args = parser.parse_args()
     result = run(args.source, args.data)
-    print(json.dumps({key: value if key != "quality_checks" else "ver relatório" for key, value in result.items()}, indent=2))
+    output = {}
+    for key, value in result.items():
+        output[key] = value if key != "quality_checks" else "ver relatório"
+    print(json.dumps(output, indent=2))
 
 if __name__ == "__main__":
     main()
