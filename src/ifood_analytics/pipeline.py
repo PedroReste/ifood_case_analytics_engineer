@@ -9,12 +9,51 @@ import argparse
 import json
 import shutil
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 import duckdb
 import pandas as pd
-from .config import PipelinePaths, SOURCE_FILES
 from .quality import run_quality_checks
+
+# Contrato de entrada: a carga só começa quando os nove arquivos estão presentes.
+SOURCE_FILES: tuple[str, ...] = (
+    "olist_customers_dataset.csv",
+    "olist_geolocation_dataset.csv",
+    "olist_order_items_dataset.csv",
+    "olist_order_payments_dataset.csv",
+    "olist_order_reviews_dataset.csv",
+    "olist_orders_dataset.csv",
+    "olist_products_dataset.csv",
+    "olist_sellers_dataset.csv",
+    "product_category_name_translation.csv",
+)
+
+
+@dataclass(frozen=True)
+class PipelinePaths:
+    source: Path
+    data: Path
+
+    @property
+    def bronze(self) -> Path:
+        return self.data / "bronze"
+
+    @property
+    def silver(self) -> Path:
+        return self.data / "silver"
+
+    @property
+    def gold(self) -> Path:
+        return self.data / "gold"
+
+    @property
+    def reports(self) -> Path:
+        return self.data / "reports"
+
+    def create(self) -> None:
+        for path in (self.bronze, self.silver, self.gold, self.reports):
+            path.mkdir(parents=True, exist_ok=True)
 
 # Mapa explícito de datas por tabela. Colunas não listadas mantêm o tipo inferido
 # pela leitura; assim, identificadores e CEPs não são convertidos por engano.

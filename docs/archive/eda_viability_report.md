@@ -4,7 +4,7 @@ Documento de referência para as cinco perguntas analíticas do case. Para cada 
 
 ---
 
-## Pergunta 1 — Qual é a sazonalidade de receita?
+## Pergunta 1 — Qual é a seasonality de receita?
 
 ### Viabilidade: **Parcialmente respondida com ressalvas**
 
@@ -17,15 +17,15 @@ A série histórica de março/2016 a agosto/2018 permite identificar padrões me
 | Crescimento médio YoY (jan–jul) | Positivo em todos os meses comparáveis |
 | Recorte executivo | Março–agosto/2018: R$ 5,56 mi, 39,7k pedidos |
 
-**Limitação estrutural — por que a sazonalidade não pode ser isolada:**
+**Limitação estrutural — por que a seasonality não pode ser isolada:**
 
-A Olist crescia rapidamente no período. **Tendência de crescimento** e **sazonalidade** estão misturadas na série: um pico em novembro/2017 pode refletir Black Friday *e* o fato de novembro ser um mês mais maduro da plataforma em comparação a meses anteriores.
+A Olist crescia rapidamente no período. **Tendência de crescimento** e **seasonality** estão misturadas na série: um pico em novembro/2017 pode refletir Black Friday *e* o fato de novembro ser um mês mais maduro da plataforma em comparação a meses anteriores.
 
-Para decompor sazonalidade da tendência são necessários ao menos três anos completos com crescimento estabilizado. A base cobre apenas ~30 meses.
+Para decompor seasonality da tendência são necessários ao menos três anos completos com crescimento estabilizado. A base cobre apenas ~30 meses.
 
 **Proxy utilizado:**
 
-Comparação por mês do calendário restrita a 2017 e meses completos de 2018, reduzindo (mas não eliminando) a mistura. Setembro e outubro/2018 são residuais e excluídos do recorte executivo.
+Comparação por mês do calendário restrita a 2017 e meses completos de 2018, reduzindo (mas não eliminando) a mistura. Setembro e outubro/2018 são residuais e excluídos da janela executiva.
 
 **Para resposta definitiva, faltam:**
 - Dados de sessão/tráfego (para separar conversão de volume)
@@ -76,11 +76,11 @@ A matriz de decisão cruza GMV com review médio e taxa de atraso, para não esc
 
 ## Pergunta 3 — Atraso na entrega afeta a recompra?
 
-### Viabilidade: **Respondida com associação observacional — causalidade indeterminada**
+### Viabilidade: **Respondida com association observacional — causality indeterminada**
 
 **O que é possível responder:**
 
-A associação entre atraso e comportamento posterior é mensurável com os dados disponíveis.
+A association entre atraso e comportamento posterior é mensurável com os dados disponíveis.
 
 | Métrica | Pedidos no prazo | Pedidos atrasados | Diferença |
 |---|---|---|---|
@@ -90,9 +90,9 @@ A associação entre atraso e comportamento posterior é mensurável com os dado
 
 **Análise de robustez (janela de 90 dias):**
 
-Ao equalizar a oportunidade de observação — restringindo a coorte a pedidos com ao menos 90 dias de janela — a diferença cai para **−0,29 p.p.** (IC95%: −0,66 a +0,10 p.p.), **cruzando zero**. A evidência de efeito sobre recompra é sensível à censura temporal e não sustenta afirmação causal.
+Ao equalizar a oportunidade de observação — restringindo a coorte a pedidos com ao menos 90 dias de janela — a diferença cai para **−0,29 p.p.** (IC95%: −0,66 a +0,10 p.p.), **cruzando zero**. A evidência de efeito sobre recompra é sensível a temporal censoring e não sustenta afirmação causal.
 
-**Por que causalidade não é determinável:**
+**Por que causality não é determinável:**
 
 - **Censura temporal**: pedidos recentes têm menos tempo para gerar recompra, criando viés de sobrevivência. A análise de 90 dias mitiga parcialmente isso.
 - **Confundidores não observados**: clientes de menor renda, regiões mais distantes ou categorias específicas podem ter simultaneamente maior taxa de atraso e menor frequência de compra por razões independentes do atraso.
@@ -103,7 +103,7 @@ Ao equalizar a oportunidade de observação — restringindo a coorte a pedidos 
 A queda de review de 4,29 para 2,57 é o sinal mais robusto e direto. A diferença de recompra observada (−0,59 p.p.) justifica a hipótese, mas a recomendação é um **experimento de SLA/recuperação** para medir efeito causal, não assumir que a diferença observada se tornará receita incremental.
 
 **Exposição logística:**
-R$ 490,5 mil de GMV passaram por pedidos atrasados no recorte executivo. Reduzir 25% dos atrasos "trata" R$ 122,6 mil de GMV sob risco — não é uplift projetado.
+R$ 490,5 mil de GMV passaram por pedidos atrasados na janela executiva. Reduzir 25% dos atrasos "trata" R$ 122,6 mil de GMV sob risco — não é uplift projetado.
 
 **Para resposta definitiva, faltam:**
 - Experimento controlado (holdout de SLA ou recuperação proativa)
@@ -151,13 +151,13 @@ A análise regional usa escala absoluta (GMV total por UF) combinada com CLV mé
 
 ---
 
-## Pergunta 5 — Há concentração de sellers?
+## Pergunta 5 — Há seller concentration?
 
 ### Viabilidade: **Respondida diretamente — pergunta mais completa com os dados disponíveis**
 
 **O que é possível responder:**
 
-A distribuição de GMV por seller é calculável sem proxies. As métricas de concentração estão disponíveis diretamente.
+A distribuição de GMV por seller é calculável sem proxies. As métricas de seller concentration estão disponíveis diretamente.
 
 | Métrica | Valor | Interpretação |
 |---|---|---|
@@ -170,10 +170,10 @@ A distribuição de GMV por seller é calculável sem proxies. As métricas de c
 
 **Interpretação:**
 
-A cauda é desigual (Gini 0,79), mas não há monopolista (HHI 0,0036). Isso significa que a receita está distribuída de forma muito assimétrica, mas nenhum seller individual é grande o suficiente para representar risco de concentração crítico. A gestão de SLA pode ser priorizada nos sellers de maior GMV que também têm atraso elevado — identificáveis pelo scatter `revenue × late_rate`.
+A cauda é desigual (Gini 0,79), mas não há monopolista (HHI 0,0036). Isso significa que a receita está distribuída de forma muito assimétrica, mas nenhum seller individual é grande o suficiente para representar risco crítico de concentration. A gestão de SLA pode ser priorizada nos sellers de maior GMV que também têm atraso elevado — identificáveis pelo scatter `revenue × late_rate`.
 
 **Limitações residuais:**
-- `avg_review_score` e `late_rate` por seller são médias ponderadas por item vendido, não por pedido — coerente com o grão da visão, mas não equivale à experiência média por transação.
+- `avg_review_score` e `late_rate` por seller são médias ponderadas por item vendido, não por pedido — coerente com o grain da view, mas não equivale à experiência média por transação.
 - Sellers com poucos pedidos (< 30) têm métricas de atraso ruidosas e são excluídos da análise de risco operacional.
 
 **Para análise mais completa, faltam:**
@@ -187,10 +187,11 @@ A cauda é desigual (Gini 0,79), mas não há monopolista (HHI 0,0036). Isso sig
 
 | Pergunta | Viabilidade | Proxy utilizado | Dados que desbloqueiam resposta definitiva |
 |---|---|---|---|
-| 1. Sazonalidade | ⚠️ Parcial | Comparação YoY restrita a meses completos | 3+ anos estabilizados, dados de tráfego/mídia |
+| 1. Seasonality | ⚠️ Parcial | Comparação YoY restrita a meses completos | 3+ anos estabilizados, dados de tráfego/mídia |
 | 2. Categorias rentáveis | ⚠️ Proxy | GMV como proxy de rentabilidade | CMV, comissões, custo logístico operacional |
 | 3. Atraso × recompra | ⚠️ Associação | Diferença observada + bootstrap agrupado | Experimento com holdout de SLA/recuperação |
 | 4. CLV por região | ⚠️ Proxy | GMV histórico observado por cliente | Cohorts completos, margem, CAC por canal/UF |
 | 5. Concentração de sellers | ✅ Direta | — (métricas calculáveis sem proxy) | Dados de estoque, fulfillment, SLA contratual |
 
 **Nota sobre GMV vs. receita:** todas as análises usam GMV (soma de `price` excluindo `canceled`/`unavailable`) porque custo, margem, comissão e subsídio não existem na fonte. Frete é analisado separadamente. As recomendações são hipóteses a validar com experimentos, não projeções causais.
+

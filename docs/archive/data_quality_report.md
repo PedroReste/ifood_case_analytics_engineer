@@ -7,7 +7,7 @@ Foram executados **34 checks**: 31 críticos (todos aprovados) e três warnings,
 | Dimensão | Verificações | Resultado da referência |
 |---|---|---|
 | Schema | Conjunto exato de colunas das 9 fontes | Pass; mudança de coluna agora gera relatório DQ legível antes da silver |
-| Grão e chaves | 7 chaves de negócio/dimensões, incluindo `(order_id, order_item_id)` e `(order_id, payment_sequential)` | Pass; zero duplicatas e chaves nulas |
+| Grain e chaves | 7 chaves de negócio/dimensões, incluindo `(order_id, order_item_id)` e `(order_id, payment_sequential)` | Pass; zero duplicatas e chaves nulas |
 | Domínios | status, review 1–5, preço/frete não negativos | Pass |
 | Integridade referencial | orders→customers; items→orders/products/sellers; payments/reviews→orders | Pass; zero órfãos |
 | Temporal | parsing, aprovação e entrega posteriores à compra | Pass para datas disponíveis |
@@ -25,6 +25,7 @@ Foram executados **34 checks**: 31 críticos (todos aprovados) e três warnings,
 - As 261.831 linhas totalmente duplicadas de geolocalização permanecem em `geolocation.parquet`. A visão adicional `geolocation_by_zip.parquet` usa mediana por CEP e moda segura para cidade/UF, sem substituir o detalhe.
 - Reviews sem texto e datas condicionais ao status permanecem nulos; não há imputação que invente uma entrega ou comentário.
 - Valores extremos são preservados: a fonte não oferece um limite de negócio que prove erro, e removê-los alteraria o GMV observado.
-- A reconciliação usa `outer join` após agregar cada lado por `order_id`. Assim, pedidos presentes em somente uma fonte não são escondidos pelo universo comparável.
+- A reconciliação (reconciliation) usa `outer join` após agregar cada lado por `order_id`. Assim, pedidos presentes em somente uma fonte não são escondidos pelo universo comparável.
 
 Além do gate pré-silver, a execução valida a gold: existem exatamente seis relações publicadas, `fact_orders` mantém uma linha por `order_id`, `fact_order_items` uma por `(order_id, order_item_id)`, e o GMV de itens reconcilia entre as duas facts.
+
