@@ -263,7 +263,74 @@ def validate_gold_contracts(
         ),
     ]
 
-def run(source: Path, data: Path) -> dict[str, object]:
+def _write_markdown_reports(
+    manifest: dict[str, object],
+    docs_dir: Path,
+    reports_dir: Path,
+) -> None:
+    """Gera relatorios markdown resumidos para leitura humana em docs/."""
+    docs_dir.mkdir(parents=True, exist_ok=True)
+
+    quality_checks: list[dict[str, Any]] = manifest.get("quality_checks", [])  # type: ignore[assignment]
+    critical_failed = [
+        check for check in quality_checks
+        if check.get("severity") == "critical" and not check.get("passed", False)
+    ]
+    warnings_failed = [
+        check for check in quality_checks
+        if check.get("severity") == "warning" and not check.get("passed", False)
+    ]
+    quality_md = [
+        "# Data Quality - Ultima execucao",
+        "",
+        f"- Total de checks: {len(quality_checks)}",
+        f"- Criticos reprovados: {len(critical_failed)}",
+        f"- Warnings reprovados: {len(warnings_failed)}",
+        "",
+        "## Criticos reprovados",
+        "",
+    ]
+    if critical_failed:
+        for check in critical_failed:
+            quality_md.append(f"- {check.get('check')}: {check.get('observed')}")
+    else:
+        quality_md.append("- Nenhum check critico reprovado.")
+    quality_md.extend(["", "## Warnings reprovados", ""])
+    if warnings_failed:
+        for check in warnings_failed:
+            quality_md.append(f"- {check.get('check')}: {check.get('observed')}")
+    else:
+        quality_md.append("- Nenhum warning reprovado.")
+    quality_md.extend([
+        "",
+        f"Relatorio JSON completo: `{(reports_dir / 'data_quality.json').as_posix()}`",
+    ])
+    (docs_dir / "data_quality_last_run.md").write_text("\n".join(quality_md) + "\n", encoding="utf-8")
+
+    gold_contracts: list[dict[str, Any]] = manifest.get("gold_contracts", [])  # type: ignore[assignment]
+    failed_contracts = [check for check in gold_contracts if not check.get("passed", False)]
+    pipeline_md = [
+        "# Pipeline - Ultima execucao",
+        "",
+        "## Volumes por camada",
+        "",
+    ]
+    for layer in ("bronze", "silver", "gold"):
+        counts = manifest.get(layer, {})
+        pipeline_md.append(f"- {layer}: {counts}")
+    pipeline_md.extend(["", "## Contratos gold", ""])
+    if failed_contracts:
+        for contract in failed_contracts:
+            pipeline_md.append(f"- REPROVADO: {contract.get('check')} ({contract.get('observed')})")
+    else:
+        pipeline_md.append("- Todos os contratos gold aprovados.")
+    pipeline_md.extend([
+        "",
+        f"Manifesto JSON completo: `{(reports_dir / 'pipeline_manifest.json').as_posix()}`",
+    ])
+    (docs_dir / "pipeline_last_run.md").write_text("\n".join(pipeline_md) + "\n", encoding="utf-8")
+
+def run(source: Path, data: Path, docs_output: Path | None = None) -> dict[str, object]:
     """Executa todas as camadas e falha caso uma regra crítica de DQ não passe."""
     # Orquestração: caminhos -> bronze -> gate de DQ -> silver -> gold -> manifesto.
     paths = PipelinePaths(source=source.resolve(), data=data.resolve())
@@ -291,6 +358,8 @@ def run(source: Path, data: Path) -> dict[str, object]:
     (paths.reports / "pipeline_manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
     )
+    if docs_output is not None:
+        _write_markdown_reports(manifest, docs_output.resolve(), paths.reports)
     return manifest
 
 def main() -> None:
@@ -298,8 +367,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True, help="Diretório dos 9 CSVs")
     parser.add_argument("--data", type=Path, default=Path("data"), help="Diretório de saída")
+    parser.add_argument("--docs", type=Path, default=Path("docs"), help="Diretório para relatórios markdown")
     args = parser.parse_args()
-    result = run(args.source, args.data)
+    result = run(args.source, args.data, docs_output=args.docs)
     output = {}
     for key, value in result.items():
         output[key] = value if key != "quality_checks" else "ver relatório"

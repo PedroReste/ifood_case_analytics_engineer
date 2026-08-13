@@ -121,7 +121,7 @@ def main() -> None:
     # Argumentos mantêm o script reutilizável para diferentes diretórios de dados.
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=Path("data"))
-    parser.add_argument("--output", type=Path, default=Path("data/reports/ai_summary.md"))
+    parser.add_argument("--output", type=Path, default=Path("docs/ai_summary.md"))
     args = parser.parse_args()
     text = summarize(args.data)
     args.output.parent.mkdir(parents=True, exist_ok=True)

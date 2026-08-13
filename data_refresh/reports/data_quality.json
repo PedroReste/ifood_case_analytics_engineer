@@ -1,0 +1,311 @@
+[
+  {
+    "check": "schema olist_customers_dataset.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "schema olist_geolocation_dataset.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "schema olist_order_items_dataset.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "schema olist_order_payments_dataset.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "schema olist_order_reviews_dataset.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "schema olist_orders_dataset.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "schema olist_products_dataset.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "schema olist_sellers_dataset.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "schema product_category_name_translation.csv",
+    "passed": true,
+    "observed": {
+      "missing": [],
+      "unexpected": []
+    },
+    "expectation": "colunas exatamente iguais ao contrato",
+    "severity": "critical"
+  },
+  {
+    "check": "orders.order_id único e preenchido",
+    "passed": true,
+    "observed": {
+      "duplicates": 0,
+      "null_keys": 0
+    },
+    "expectation": "0 duplicatas e 0 chaves nulas",
+    "severity": "critical"
+  },
+  {
+    "check": "customers.customer_id único e preenchido",
+    "passed": true,
+    "observed": {
+      "duplicates": 0,
+      "null_keys": 0
+    },
+    "expectation": "0 duplicatas e 0 chaves nulas",
+    "severity": "critical"
+  },
+  {
+    "check": "items.order_id+item_id único e preenchido",
+    "passed": true,
+    "observed": {
+      "duplicates": 0,
+      "null_keys": 0
+    },
+    "expectation": "0 duplicatas e 0 chaves nulas",
+    "severity": "critical"
+  },
+  {
+    "check": "payments.order_id+sequence único e preenchido",
+    "passed": true,
+    "observed": {
+      "duplicates": 0,
+      "null_keys": 0
+    },
+    "expectation": "0 duplicatas e 0 chaves nulas",
+    "severity": "critical"
+  },
+  {
+    "check": "products.product_id único e preenchido",
+    "passed": true,
+    "observed": {
+      "duplicates": 0,
+      "null_keys": 0
+    },
+    "expectation": "0 duplicatas e 0 chaves nulas",
+    "severity": "critical"
+  },
+  {
+    "check": "sellers.seller_id único e preenchido",
+    "passed": true,
+    "observed": {
+      "duplicates": 0,
+      "null_keys": 0
+    },
+    "expectation": "0 duplicatas e 0 chaves nulas",
+    "severity": "critical"
+  },
+  {
+    "check": "translation.category único e preenchido",
+    "passed": true,
+    "observed": {
+      "duplicates": 0,
+      "null_keys": 0
+    },
+    "expectation": "0 duplicatas e 0 chaves nulas",
+    "severity": "critical"
+  },
+  {
+    "check": "orders.customer_id preenchido",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 nulos",
+    "severity": "critical"
+  },
+  {
+    "check": "datas de pedidos parseáveis",
+    "passed": true,
+    "observed": {
+      "order_purchase_timestamp": 0,
+      "order_approved_at": 0,
+      "order_delivered_carrier_date": 0,
+      "order_delivered_customer_date": 0,
+      "order_estimated_delivery_date": 0
+    },
+    "expectation": "0 falhas de parsing em datas não nulas",
+    "severity": "critical"
+  },
+  {
+    "check": "status dentro do domínio",
+    "passed": true,
+    "observed": [],
+    "expectation": "somente status conhecidos",
+    "severity": "critical"
+  },
+  {
+    "check": "FK orders -> customers",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 órfãos",
+    "severity": "critical"
+  },
+  {
+    "check": "FK items -> orders",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 órfãos",
+    "severity": "critical"
+  },
+  {
+    "check": "FK items -> products",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 órfãos",
+    "severity": "critical"
+  },
+  {
+    "check": "FK items -> sellers",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 órfãos",
+    "severity": "critical"
+  },
+  {
+    "check": "FK payments -> orders",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 órfãos",
+    "severity": "critical"
+  },
+  {
+    "check": "FK reviews -> orders",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 órfãos",
+    "severity": "critical"
+  },
+  {
+    "check": "preço e frete não negativos",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 valores negativos",
+    "severity": "critical"
+  },
+  {
+    "check": "review_score entre 1 e 5",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 fora do intervalo",
+    "severity": "critical"
+  },
+  {
+    "check": "aprovação após compra",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 inconsistências entre datas disponíveis",
+    "severity": "critical"
+  },
+  {
+    "check": "entrega após compra",
+    "passed": true,
+    "observed": 0,
+    "expectation": "0 inconsistências entre datas disponíveis",
+    "severity": "critical"
+  },
+  {
+    "check": "pedido entregue possui data de entrega",
+    "passed": true,
+    "observed": 8e-05,
+    "expectation": "mais de 99,9% preenchido; nulos preservados",
+    "severity": "warning"
+  },
+  {
+    "check": "categoria ausente monitorada",
+    "passed": true,
+    "observed": 0.0185,
+    "expectation": "menos de 3%; preencher como unknown",
+    "severity": "warning"
+  },
+  {
+    "check": "outliers extremos de preço/frete monitorados",
+    "passed": false,
+    "observed": {
+      "price": 4074,
+      "freight_value": 5538,
+      "row_rate": 0.0741
+    },
+    "expectation": "menos de 5% das linhas acima de Q3 + 3*IQR; preservar e monitorar",
+    "severity": "warning"
+  },
+  {
+    "check": "coordenadas em faixa geográfica plausível",
+    "passed": false,
+    "observed": 29,
+    "expectation": "0 coordenadas fora da faixa ampla do Brasil",
+    "severity": "warning"
+  },
+  {
+    "check": "pagamentos reconciliam itens + frete",
+    "passed": false,
+    "observed": {
+      "only_payments": 775,
+      "only_items": 1,
+      "comparable_orders": 98665,
+      "value_mismatches": 417,
+      "mismatch_rate_comparable": 0.0042
+    },
+    "expectation": "menos de 2% de divergência nos pedidos comparáveis; pedidos only_items são pré-pagamento esperado",
+    "severity": "warning"
+  },
+  {
+    "check": "reviews múltiplos por pedido monitorados",
+    "passed": true,
+    "observed": 0.0055,
+    "expectation": "menos de 1% dos pedidos com mais de um review; avg_review_score será média dos reviews",
+    "severity": "warning"
+  }
+]

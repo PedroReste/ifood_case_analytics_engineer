@@ -13,18 +13,6 @@ Responder, com dados reproduziveis e leitura executiva clara, a pergunta:
 - Metrica principal: GMV (soma de `price` dos itens) para pedidos nao `canceled` e nao `unavailable`.
 - Objetivo: construir um MVP analitico para priorizacao de alavancas, sem prometer causalidade quando o desenho for observacional.
 
-## Estrutura simplificada para apresentacao
-
-- `notebooks/01_data_quality.ipynb`: diagnostico da fonte e justificativa dos tratamentos.
-- `src/ifood_analytics/quality.py`: contratos de qualidade usados no gate do pipeline.
-- `src/ifood_analytics/pipeline.py`: orquestracao bronze -> silver -> gold e validacoes finais.
-- `sql/gold.sql`: modelagem das facts e marts analiticas.
-- `notebooks/02_exploratory_analysis.ipynb`: respostas das 5 perguntas e recomendacoes.
-- `docs/one_pager.md`: resumo executivo para decisao.
-- `docs/case_report.md`: apendice tecnico curto.
-
-Documentos historicos de apoio ficam em `docs/archive/`.
-
 ## Processo completo de tratamento de dados
 
 ### 1) Bronze: copia fiel da origem
@@ -108,13 +96,6 @@ Ponto importante: nao ha exclusao de linhas da bronze para a silver.
 
 Resumo com plano de 6 meses: `docs/one_pager.md`.
 
-## Como apresentar o case (roteiro)
-
-1. Contexto, premissas e limites neste README.
-2. Qualidade da fonte e decisoes de tratamento em `notebooks/01_data_quality.ipynb`.
-3. Evidencias das 5 perguntas em `notebooks/02_exploratory_analysis.ipynb`.
-4. Decisao executiva e plano em `docs/one_pager.md`.
-
 ## Como executar
 
 Requer Python 3.11+.
@@ -132,12 +113,15 @@ $env:OLIST_SOURCE = "C:\caminho\archive"
 jupyter notebook notebooks\01_data_quality.ipynb
 
 # 2) Pipeline completo bronze -> silver -> gold
-python -m ifood_analytics.pipeline --source "C:\caminho\archive" --data data
+python -m ifood_analytics.pipeline --source "C:\caminho\archive" --data data --docs docs
 
 # 3) Analise exploratoria e recomendacoes
 jupyter notebook notebooks\02_exploratory_analysis.ipynb
 
-# 4) Testes de contrato
+# 4) Resumo automatizado em markdown (docs/ai_summary.md)
+python -m ifood_analytics.ai_summary --data data
+
+# 5) Testes de contrato
 python -m pytest
 ```
 

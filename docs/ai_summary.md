@@ -1,0 +1,1 @@
+A base soma R$ 13.494.400,74 em GMV de itens. A categoria líder é health_beauty (R$ 1.255.695,13). Os 10% maiores sellers concentram 67,5% do GMV. Priorize disponibilidade nas categorias líderes, confiabilidade logística e desenvolvimento da cauda de sellers.
